@@ -9,6 +9,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from bs4 import BeautifulSoup
 import csv
 import datetime
+import json
+
 
 # Función para extraer datos de cada perfil
 def extraer_datos_perfil(perfil):
@@ -20,7 +22,9 @@ def extraer_datos_perfil(perfil):
     afiliacion = afiliacion.text.strip() if afiliacion else 'No disponible'
     intereses = perfil.find('div', class_='gs_ai_int')
     temas_interes = ', '.join([a.text for a in intereses.find_all('a')]) if intereses else 'No disponible'
-    return {'Nombre': nombre, 'Citas': citas, 'Correo': email, 'Afiliación': afiliacion, 'Temas de Interés': temas_interes}
+    return {'Nombre': nombre, 'Citas': citas, 'Correo': email, 'Afiliación': afiliacion,
+            'Temas de Interés': temas_interes}
+
 
 # Configuración de Selenium con opciones para Chrome
 chrome_options = Options()
@@ -32,6 +36,7 @@ driver = webdriver.Chrome(service=service, options=chrome_options)
 fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 nombre_archivo = f"resultados_google_scholar_{fecha_hora}.csv"
 
+
 # Función para verificar la presencia de CAPTCHA
 def check_captcha(driver):
     try:
@@ -41,25 +46,28 @@ def check_captcha(driver):
     except NoSuchElementException:
         print("No se detectó CAPTCHA.")
 
+
 # Inicio del script
-url_base = "https://scholar.google.com/citations?view_op=search_authors&hl=es&mauthors=%22%40edu.ec%22&after_author=VIc-AT7s__8J&astart=100"
+url_base = "https://scholar.google.com/citations?view_op=search_authors&hl=es&mauthors=%22%40edu.ec%22&after_author=auuIAP3___8J&astart=15500"
 print("URL de inicio:", url_base)
 driver.get(url_base)
 
-num_paginas = 5  # Número de páginas a recorrer
+check_captcha(driver)
+
+num_paginas = 1000  # Número de páginas a recorrer
 with open(nombre_archivo, 'w', newline='', encoding='utf-8') as file:
     writer = csv.DictWriter(file, fieldnames=['Nombre', 'Citas', 'Correo', 'Afiliación', 'Temas de Interés'])
     writer.writeheader()
-    
+
     for _ in range(num_paginas):
         html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
         perfiles = soup.find_all('div', class_='gs_ai gs_scl gs_ai_chpr')
-        
+
         for perfil in perfiles:
             resultado = extraer_datos_perfil(perfil)
             writer.writerow(resultado)
-        
+
         # Navegar a la siguiente página si es posible
         try:
             siguiente_btn = WebDriverWait(driver, 10).until(
@@ -71,7 +79,32 @@ with open(nombre_archivo, 'w', newline='', encoding='utf-8') as file:
             print("No se pudo navegar a la siguiente página o se detectó CAPTCHA:", str(e))
             break
 
+
+def save_json(data):
+    try:
+        with open('urls.json', 'r+') as file:
+            # Cargamos los datos existentes
+            existing_data = json.load(file)
+            # Agregamos el nuevo objeto al final de la lista de datos existentes
+            existing_data.append(data)
+            # Regresamos al inicio del archivo
+            file.seek(0)
+            # Escribimos los datos actualizados
+            json.dump(existing_data, file, indent=4)
+            # Truncamos el archivo para eliminar cualquier contenido adicional
+            file.truncate()
+    except Exception as e:
+        pass
+
+
 url_final = driver.current_url
+
+save_url = {
+    'url_base': url_base,
+    'url': url_final,
+}
+save_json(save_url)
+
 print("URL de fin:", url_final)
 
 driver.quit()
