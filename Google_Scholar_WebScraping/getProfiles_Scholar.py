@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from bs4 import BeautifulSoup
 import csv
+import datetime
 
 # Función para extraer datos de cada perfil
 def extraer_datos_perfil(perfil):
@@ -27,6 +28,10 @@ chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
+# Nombre del archivo con fecha y hora
+fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+nombre_archivo = f"resultados_google_scholar_{fecha_hora}.csv"
+
 # Función para verificar la presencia de CAPTCHA
 def check_captcha(driver):
     try:
@@ -37,12 +42,12 @@ def check_captcha(driver):
         print("No se detectó CAPTCHA.")
 
 # Inicio del script
-url_base = "https://scholar.google.com/citations?hl=es&view_op=search_authors&mauthors=%22%40edu.ec%22&btnG="
+url_base = "https://scholar.google.com/citations?view_op=search_authors&hl=es&mauthors=%22%40edu.ec%22&after_author=VIc-AT7s__8J&astart=100"
 print("URL de inicio:", url_base)
 driver.get(url_base)
 
 num_paginas = 5  # Número de páginas a recorrer
-with open('resultados_google_scholar.csv', 'w', newline='', encoding='utf-8') as file:
+with open(nombre_archivo, 'w', newline='', encoding='utf-8') as file:
     writer = csv.DictWriter(file, fieldnames=['Nombre', 'Citas', 'Correo', 'Afiliación', 'Temas de Interés'])
     writer.writeheader()
     
